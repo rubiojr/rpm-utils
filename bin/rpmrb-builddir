@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+require 'fileutils'
+dest_pkg_dir = "/home/rubiojr/tmp/rpms"
+dist = 'fos6'
+mock_profile = 'frameos-6-preview'
+cur_dir = ENV['PWD']
+
+begin
+  FileUtils.mkdir(dest_pkg_dir) if not File.exist?(dest_pkg_dir)
+  buildlog = File.new('build.log', 'w')
+
+  pkg_count = 0
+  pkgs = Dir['*.src.rpm'].map { |p| File.basename(p, '.src.rpm') }
+  pkgs.sort.each do |pkg|
+    pkg_count += 1
+    $stdout.sync = true
+    print "Building pkg #{pkg} [#{pkg_count}/#{pkgs.size}]... "
+    `/usr/bin/mock -D'%dist #{dist}' --disable-plugin ccache -r #{mock_profile} --resultdir #{dest_pkg_dir} #{pkg}.src.rpm > /dev/null 2>&1`
+    if $? == 0
+      puts "Ok"
+      buildlog.puts "OK: #{pkg}"
+    else
+      puts "Failed"
+      buildlog.puts "ERROR: #{pkg}"
+    end
+  end
+ensure
+  buildlog.close
+end
